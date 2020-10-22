@@ -188,6 +188,22 @@ var migrations = []migrate.Migration{
 			return nil
 		},
 	},
+	{
+		Version: 11,
+		Up: func(db *mongo.Database) error {
+			mod := mongo.IndexModel{
+				Keys:    bson.D{{"tenant_id", 1}},
+				Options: options.Index().SetName("tenant_id").SetUnique(true),
+			}
+			_, err := db.Collection("namespaces").Indexes().CreateOne(context.TODO(), mod)
+			return err
+
+		},
+		Down: func(db *mongo.Database) error {
+			_, err := db.Collection("namespaces").Indexes().DropOne(context.TODO(), "tenant_id")
+			return err
+		},
+	},
 }
 
 func ApplyMigrations(db *mongo.Database) error {

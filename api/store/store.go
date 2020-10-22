@@ -43,4 +43,6 @@ type Store interface {
 	ListUsers(ctx context.Context, pagination paginator.Query, filters []models.Filter, countSessionsDevices bool) ([]models.User, int, error)
 	LoadLicense(ctx context.Context) (*models.License, error)
 	SaveLicense(ctx context.Context, license *models.License) error
+	GetNamespace(ctx context.Context, namespace string) (*models.Namespace, error)
+	CreateNamespace(ctx context.Context, namespace *models.Namespace) error
 }

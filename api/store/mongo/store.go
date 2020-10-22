@@ -1092,6 +1092,21 @@ func (s *Store) SaveLicense(ctx context.Context, license *models.License) error 
 	return err
 }
 
+func (s *Store) GetNamespace(ctx context.Context, namespace string) (*models.Namespace, error) {
+	ns := new(models.Namespace)
+
+	if err := s.db.Collection("namespaces").FindOne(ctx, bson.M{"tenant_id": namespace}).Decode(&ns); err != nil {
+		return nil, err
+	}
+
+	return ns, nil
+}
+
+func (s *Store) CreateNamespace(ctx context.Context, namespace *models.Namespace) error {
+	_, err := s.db.Collection("namespaces").InsertOne(ctx, namespace)
+	return err
+}
+
 func buildPaginationQuery(pagination paginator.Query) []bson.M {
 	if pagination.PerPage == -1 {
 		return nil
