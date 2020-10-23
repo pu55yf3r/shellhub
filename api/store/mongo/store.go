@@ -1102,8 +1102,52 @@ func (s *Store) GetNamespace(ctx context.Context, namespace string) (*models.Nam
 	return ns, nil
 }
 
-func (s *Store) CreateNamespace(ctx context.Context, namespace *models.Namespace) error {
+func (s *Store) ListNamespaces(ctx context.Context, pagination paginator.Query) ([]models.Namespace, int, error) {
+	query := []bson.M{
+		{
+			"$sort": bson.M{
+				"started_at": -1,
+			},
+		},
+	}
+
+	// Only match for the respective tenant if requested
+
+	queryCount := append(query, bson.M{"$count": "count"})
+	count, err := aggregateCount(ctx, s.db.Collection("namespaces"), queryCount)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	query = append(query, buildPaginationQuery(pagination)...)
+
+	namespaces := make([]models.Namespace, 0)
+	cursor, err := s.db.Collection("namespaces").Aggregate(ctx, query)
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		namespace := new(models.Namespace)
+		err = cursor.Decode(&namespace)
+		if err != nil {
+			return namespaces, count, err
+		}
+		namespaces = append(namespaces, *namespace)
+	}
+
+	return namespaces, count, err
+
+}
+
+func (s *Store) CreateNamespace(ctx context.Context, namespace *models.Namespace) (*models.Namespace, error) {
 	_, err := s.db.Collection("namespaces").InsertOne(ctx, namespace)
+	return namespace, err
+}
+func (s *Store) DeleteNamespace(ctx context.Context, namespace string) error {
+	_, err := s.db.Collection("namespaces").DeleteOne(ctx, bson.M{"tenant_id": namespace})
+	return err
+}
+func (s *Store) EditNamespace(ctx context.Context, namespace, name string) error {
+	_, err := s.db.Collection("namespaces").UpdateOne(ctx, bson.M{"tenant_id": namespace}, bson.M{"$set": bson.M{"name": name}})
 	return err
 }
 
